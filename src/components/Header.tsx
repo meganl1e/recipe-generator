@@ -7,8 +7,8 @@ import { HiOutlineXMark, HiBars3 } from 'react-icons/hi2';
 import { FaUtensils } from 'react-icons/fa';
 
 import Container from './Container';
-import { siteDetails } from '@/data/siteDetails';
-import { menuItems } from '@/data/menuItems';
+import { siteDetails } from '@/data/site-details';
+import { menuItems } from '@/data/menu-items';
 
 const Header: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);

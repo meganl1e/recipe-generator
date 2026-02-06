@@ -2,7 +2,7 @@ import Link from 'next/link';
 import React from 'react';
 import { FaUtensils } from 'react-icons/fa';
 
-import { siteDetails } from '@/data/siteDetails';
+import { siteDetails } from '@/data/site-details';
 import { footerDetails } from '@/data/footer';
 import { getPlatformIconByName } from '@/utils';
 

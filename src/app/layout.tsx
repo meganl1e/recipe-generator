@@ -3,7 +3,7 @@ import { Source_Sans_3, Manrope } from "next/font/google";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { siteDetails } from '@/data/siteDetails';
+import { siteDetails } from '@/data/site-details';
 
 import "./globals.css";
 
@@ -37,7 +37,7 @@ export default function RootLayout({
         className={`${manrope.className} ${sourceSans.className} antialiased`}
       >
         <Header />
-        <main>
+        <main className="pt-16 md:pt-24">
           {children}
         </main>
         <Footer />

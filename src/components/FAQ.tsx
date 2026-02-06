@@ -4,7 +4,7 @@ import { BiMinus, BiPlus } from "react-icons/bi";
 
 import SectionTitle from "./SectionTitle";
 import { faqs } from "@/data/faq";
-import { siteDetails } from "@/data/siteDetails";
+import { siteDetails } from "@/data/site-details";
 
 const FAQ: React.FC = () => {
     return (

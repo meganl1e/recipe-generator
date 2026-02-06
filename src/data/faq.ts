@@ -1,5 +1,5 @@
 import { IFAQ } from "@/types";
-import { siteDetails } from "./siteDetails";
+import { siteDetails } from "./site-details";
 
 export const faqs: IFAQ[] = [
     {
