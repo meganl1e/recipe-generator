@@ -77,3 +77,11 @@ export async function getAafcoNutrient() {
   );
   return json.data ?? null;
 }
+
+
+export async function getIngredients() {
+  const json = await fetchStrapi(
+    "ingredients"
+  );
+  return json.data ?? null;
+}
