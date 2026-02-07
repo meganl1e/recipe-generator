@@ -15,21 +15,21 @@ export default function RecipeGeneratorClient({
   ingredients,
   loading = false,
 }: RecipeGeneratorClientProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const onToggle = useCallback((id: number) => {
+  const onToggle = useCallback((documentId: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(documentId)) next.delete(documentId);
+      else next.add(documentId);
       return next;
     });
   }, []);
 
   const handleGenerate = () => {
     // No logic – just skeleton. Wire to your recipe generation later.
-    const selected = ingredients.filter((i) => selectedIds.has(i.id));
-    console.log("Generate recipes (skeleton)", { selectedIds: Array.from(selectedIds), selected });
+    const selected = ingredients.filter((i) => selectedIds.has(i.documentId));
+    console.log("Generate recipes (skeleton)", { selectedDocumentIds: Array.from(selectedIds), selected });
   };
 
   return (

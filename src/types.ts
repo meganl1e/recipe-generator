@@ -3,21 +3,22 @@ export interface IMenuItem {
     url: string;
 }
 
-/** One nutrient value from Strapi JSON (e.g. iron, zinc, lysine). */
 export interface INutrientValue {
     unit: string;
     amount: number;
 }
 
-/** Strapi ingredient – matches your API response (flat, no attributes wrapper). */
 export interface IIngredient {
     id: number;
     documentId: string;
     name: string;
-    description?: string;
-    usdaFdcId?: number;
-    /** JSON of nutrient name → { unit, amount }. Not every nutrient required. */
-    nutrients?: Record<string, INutrientValue>;
+    description: string;
+    usdaFdcId: number;
+    nutrients: Record<string, INutrientValue>;
+    allergens: string[];
+    per100g: boolean;
+    category: string;
+    yield: number;
 }
 
 export interface IBenefit {
