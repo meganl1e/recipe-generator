@@ -4,7 +4,7 @@
   --background: #ffffff;        /* Pure white */
   --foreground: #2f2e2e;        /* Near-black */
   --primary: #A3C0A1;           /* Bright peach/orange */
-  --secondary: #ffcbbf;         /* Vivid mint green */
+  --secondary: #e0a090;         /* Darker pink/salmon for better contrast on checkmarks */
   --primary-accent: #8BB18A;;    /* Deeper peach hover */
   --foreground-accent: #7A7A7A;; /* Cool gray */
   --hero-background: #ecfdf5;   /* Mint-tinted glow */
@@ -65,4 +65,13 @@ h1, h2, h3, h4, h5, h6 {
 
 @utility text-balance {
   text-wrap: balance;
+}
+
+/* Hide browser’s native search clear so only our custom clear button shows */
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="search"]::-moz-search-cancel-button {
+  display: none;
 }
