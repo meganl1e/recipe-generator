@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useMemo, useState, useRef, useEffect } from "react";
-import { HiCheck, HiXMark, HiMagnifyingGlass } from "react-icons/hi2";
+import { HiCheck, HiXMark } from "react-icons/hi2";
 import { TbMeat, TbWheat, TbCarrot, TbDroplet, TbSeeding, TbSalad } from "react-icons/tb";
+import { SearchBar } from "@/components/ui";
 import type { IIngredient } from "@/types";
 
 /** Order categories appear on the page. Any category not listed goes at the end. */
@@ -180,28 +181,15 @@ export default function IngredientSelector({
       {/* Search bar */}
       {ingredients.length > 0 && (
         <div ref={variant === "exclude" ? containerRef : undefined} className="relative">
-          <HiMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-accent pointer-events-none" aria-hidden />
-          <input
-            type="search"
+          <SearchBar
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onFocus={variant === "exclude" ? () => setPopupOpen(true) : undefined}
+            onChange={setSearch}
             placeholder={variant === "exclude" ? "Search to exclude ingredients..." : "Search ingredients..."}
-            aria-label={variant === "exclude" ? "Search ingredients to exclude" : "Search ingredients"}
+            ariaLabel={variant === "exclude" ? "Search ingredients to exclude" : "Search ingredients"}
+            onFocus={variant === "exclude" ? () => setPopupOpen(true) : undefined}
             aria-expanded={variant === "exclude" ? popupOpen : undefined}
             aria-haspopup={variant === "exclude" ? "listbox" : undefined}
-            className="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-primary/30 bg-background text-foreground placeholder:text-foreground-accent focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
           />
-          {search.trim() && (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-foreground-accent hover:text-foreground hover:bg-foreground/10 focus:outline-none focus:ring-2 focus:ring-primary"
-              aria-label="Clear search"
-            >
-              <HiXMark className="w-5 h-5" />
-            </button>
-          )}
 
           {/* Exclude variant: dropdown only (no big category grid) */}
           {variant === "exclude" && popupOpen && (

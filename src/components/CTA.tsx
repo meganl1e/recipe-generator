@@ -1,7 +1,5 @@
-import { ctaDetails } from "@/data/cta"
-
-import AppStoreButton from "./AppStoreButton"
-import PlayStoreButton from "./PlayStoreButton"
+import Link from "next/link";
+import { ctaDetails } from "@/data/cta";
 
 const CTA: React.FC = () => {
     return (
@@ -15,15 +13,19 @@ const CTA: React.FC = () => {
                     <div className="h-full flex flex-col items-center justify-center text-amber-50 text-center px-5">
                         <h2 className="text-2xl sm:text-3xl md:text-5xl md:leading-tight font-semibold mb-4 max-w-2xl">{ctaDetails.heading}</h2>
                         <p className="mx-auto max-w-xl md:px-5">{ctaDetails.subheading}</p>
-                        <div className="mt-4 flex flex-col sm:flex-row items-center sm:gap-4">
-                            <AppStoreButton />
-                            <PlayStoreButton />
+                        <div className="mt-6">
+                            <Link
+                                href="/generator"
+                                className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-3.5 text-foreground font-medium hover:bg-primary-accent transition-colors"
+                            >
+                                {ctaDetails.ctaLabel}
+                            </Link>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-    )
-}
+    );
+};
 
 export default CTA

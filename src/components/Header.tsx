@@ -18,9 +18,9 @@ const Header: React.FC = () => {
     };
 
     return (
-        <header className="bg-transparent fixed top-0 left-0 right-0 md:absolute z-50 mx-auto w-full">
+        <header className="bg-hero-background fixed top-0 left-0 right-0 md:absolute z-50 mx-auto w-full">
             <Container className="px-0!">
-                <nav className="shadow-md md:shadow-none bg-background md:bg-transparent mx-auto flex justify-between items-center py-2 px-5 md:py-10">
+                <nav className="shadow-md md:shadow-none bg-hero-background mx-auto flex justify-between items-center py-2 px-5 md:py-10">
                     <Link href="/" className="flex items-center gap-2">
                         <FaUtensils className="text-foreground min-w-fit w-7 h-7" />
                         <span className="manrope text-xl font-semibold text-foreground cursor-pointer">
@@ -37,8 +37,8 @@ const Header: React.FC = () => {
                             </li>
                         ))}
                         <li>
-                            <Link href="#cta" className="text-foreground bg-primary hover:bg-primary-accent px-8 py-3 rounded-full transition-colors font-medium">
-                                Get Started
+                            <Link href="/generator" className="text-foreground bg-primary hover:bg-primary-accent px-8 py-3 rounded-full transition-colors font-medium">
+                                Create a Recipe
                             </Link>
                         </li>
                     </ul>
@@ -71,7 +71,7 @@ const Header: React.FC = () => {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
             >
-                <div id="mobile-menu" className="md:hidden bg-background shadow-lg">
+                <div id="mobile-menu" className="md:hidden bg-hero-background shadow-lg">
                     <ul className="flex flex-col space-y-4 pt-1 pb-6 px-6">
                         {menuItems.map(item => (
                             <li key={item.text}>
@@ -81,8 +81,8 @@ const Header: React.FC = () => {
                             </li>
                         ))}
                         <li>
-                            <Link href="#cta" className="text-foreground bg-primary hover:bg-primary-accent px-5 py-2 rounded-full block w-fit font-medium" onClick={toggleMenu}>
-                                Get Started
+                            <Link href="/generator" className="text-foreground bg-primary hover:bg-primary-accent px-5 py-2 rounded-full block w-fit font-medium" onClick={toggleMenu}>
+                                Create a Recipe
                             </Link>
                         </li>
                     </ul>

@@ -1,6 +1,29 @@
+import type { Metadata } from "next";
 import RecipeGeneratorClient from "@/components/RecipeGenerator/RecipeGeneratorClient";
 import type { IIngredient } from "@/types";
 import { getIngredients } from "@/lib/strapi";
+import { siteDetails } from "@/data/site-details";
+
+const { generator, siteUrl } = siteDetails;
+
+export const metadata: Metadata = {
+  title: generator.title,
+  description: generator.description,
+  openGraph: {
+    title: generator.title,
+    description: generator.description,
+    url: `${siteUrl}generator`,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: generator.title,
+    description: generator.description,
+  },
+  alternates: {
+    canonical: `${siteUrl}generator`,
+  },
+};
 
 /**
  * Skeleton: ingredients come from the local placeholder below.
