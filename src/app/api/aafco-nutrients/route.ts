@@ -15,7 +15,8 @@ export async function GET() {
     const data = await getAafcoNutrient();
     return NextResponse.json({
       ok: true,
-      hasData: data != null,
+      hasData: data.length > 0,
+      data: data, // TAKE THIS OUT LATER
     });
   } catch (e) {
     console.error("AAFCO fetch failed:", e);

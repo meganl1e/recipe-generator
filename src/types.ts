@@ -1,3 +1,13 @@
+/** One AAFCO nutrient guideline (min/max per nutrient name). The single type in Strapi returns an array of these. */
+export interface IAafcoNutrient {
+  id: number;
+  name: string;
+  min: number | null;
+  max: number | null;
+  unit: string;
+  notes: string | null;
+}
+
 export interface IMenuItem {
     text: string;
     url: string;

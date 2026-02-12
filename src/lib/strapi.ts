@@ -3,7 +3,7 @@
  * Do not import in client components (token must stay on server).
  */
 
-import type { IIngredient } from "@/types";
+import type { IAafcoNutrient, IIngredient } from "@/types";
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL;
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
@@ -37,9 +37,10 @@ export async function fetchStrapi<T = unknown>(
   }
 
   // Full URL: STRAPI_URL + /api/ + path (e.g. .../api/aafco-nutrient)
+  // searchParams must be Record<string, string> so URLSearchParams serializes correctly (Strapi expects string query params).
   let url = `${STRAPI_URL.replace(/\/$/, "")}/api/${path.replace(/^\//, "")}`;
   if (searchParams && Object.keys(searchParams).length > 0) {
-    url += `?${new URLSearchParams(searchParams).toString()}`;
+    url += `?${new URLSearchParams(searchParams as Record<string, string>).toString()}`;
   }
   const res = await fetch(url, {
     headers: getStrapiHeaders(),
@@ -68,18 +69,24 @@ export async function fetchStrapi<T = unknown>(
 // }
 
 /**
- * Example: fetch a single AAFCO resource (single type).
- * Single-type endpoint is singular, e.g. /api/aafco-nutrient
+ * Fetch AAFCO nutrient guidelines (single type). Returns the nutrient entries array for formulation.
+ * Single-type endpoint: /api/aafco-nutrient. Populate so the nutrient component is included.
  */
-export async function getAafcoNutrient() {
+export async function getAafcoNutrient(): Promise<IAafcoNutrient[]> {
+  const json = await fetchStrapi<{ nutrient: IAafcoNutrient[] }>("aafco-nutrient", {
+    populate: "nutrient",
+  } as Record<string, string>);
+  return json.data?.nutrient ?? [];
+}
+
+
+export async function getGrublifyNutrients() {
   const json = await fetchStrapi<{ id: number; attributes: Record<string, unknown> }>(
-    "aafco-nutrient",
-    // Include the nutrients component. If still missing, try: { "populate[nutrients]": "*" }
-    { populate: "*" }
+    "grublify-nutrition-pack",
+    { populate: "*" } as Record<string, string>
   );
   return json.data ?? null;
 }
-
 
 export async function getIngredients() {
   const json = await fetchStrapi<IIngredient[]>(

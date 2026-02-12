@@ -27,7 +27,6 @@ export const metadata: Metadata = {
 
 export default async function GeneratorPage() {
   const ingredients = await getIngredients();
-  // console.log(ingredients.length);
 
   return (
     <div className="min-h-screen bg-background py-12 px-5">

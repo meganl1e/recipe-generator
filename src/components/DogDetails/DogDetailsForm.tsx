@@ -4,8 +4,8 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { lbsToKg, mer } from "@/lib/dog-calories";
 
-// Life stage factors mapping
-const LIFE_STAGE_FACTORS: Record<string, number> = {
+// Life stage factors mapping (exported for parent to compute dailyCalories)
+export const LIFE_STAGE_FACTORS: Record<string, number> = {
   "neutered-adult": 1.6,
   "intact-adult": 1.8,
   "puppy": 3.0,
@@ -19,11 +19,39 @@ const LIFE_STAGE_OPTIONS = [
   { value: "adolescent", label: "Adolescent (4-12 months)" },
 ] as const;
 
-export default function DogDetailsForm() {
-  const [name, setName] = useState<string>("");
-  const [weight, setWeight] = useState<number>(0);
-  const [unit, setUnit] = useState<string>("lbs");
-  const [lifeStage, setLifeStage] = useState<string>("");
+export interface DogDetailsValue {
+  name: string;
+  weight: number;
+  unit: string;
+  lifeStage: string;
+}
+
+const INITIAL_DOG_DETAILS: DogDetailsValue = {
+  name: "",
+  weight: 0,
+  unit: "lbs",
+  lifeStage: "",
+};
+
+interface DogDetailsFormProps {
+  value?: DogDetailsValue;
+  onChange?: (value: DogDetailsValue) => void;
+}
+
+export default function DogDetailsForm({ value: valueProp, onChange }: DogDetailsFormProps) {
+  const [internalValue, setInternalValue] = useState<DogDetailsValue>(INITIAL_DOG_DETAILS);
+  const value = valueProp ?? internalValue;
+  const updateValue = (next: DogDetailsValue) => {
+    if (onChange) onChange(next);
+    else setInternalValue(next);
+  };
+
+  const { name, weight, unit, lifeStage } = value;
+  const setName = (v: string) => updateValue({ ...value, name: v });
+  const setWeight = (v: number) => updateValue({ ...value, weight: v });
+  const setUnit = (v: string) => updateValue({ ...value, unit: v });
+  const setLifeStage = (v: string) => updateValue({ ...value, lifeStage: v });
+
   const [lifeStageOpen, setLifeStageOpen] = useState(false);
   const lifeStageRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +89,8 @@ export default function DogDetailsForm() {
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full min-w-0 px-2 py-3 border-0 border-b-4 border-primary bg-transparent text-foreground placeholder:text-foreground-accent/50 focus:outline-none transition-colors font-medium"
+          placeholder="Enter name"
+          className="w-full min-w-0 px-2 py-3 border-0 border-b-4 border-primary bg-transparent text-foreground placeholder:text-gray-400 focus:outline-none transition-colors font-medium"
         />
 
         {/* Weight Input */}
@@ -77,10 +106,10 @@ export default function DogDetailsForm() {
             type="number"
             min="0"
             step="0.1"
-            // placeholder="Weight"
+            placeholder="Enter weight"
             value={weight || ""}
             onChange={(e) => setWeight(Number(e.target.value))}
-            className="flex-1 min-w-0 px-2 py-3 border-0 border-b-4 border-primary bg-transparent text-foreground placeholder:text-foreground-accent/50 focus:outline-none transition-colors font-medium"
+            className="flex-1 min-w-0 px-2 py-3 border-0 border-b-4 border-primary bg-transparent text-foreground placeholder:text-gray-400 focus:outline-none transition-colors font-medium"
           />
           <div className="relative shrink-0">
             <select

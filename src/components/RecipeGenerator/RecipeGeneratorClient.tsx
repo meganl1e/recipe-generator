@@ -86,11 +86,11 @@ export default function RecipeGeneratorClient({
     <Container>
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 manrope">
-            Recipe Generator
-          </h1>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3 manrope">
+            Choose Ingredients
+          </h2>
           <p className="text-foreground-accent text-base">
-            Choose ingredients you have, or leave them blank to discover any recipe.
+             Pick ingredients you want to use or leave blank to generate a random recipe..
           </p>
         </div>
 
@@ -131,19 +131,19 @@ export default function RecipeGeneratorClient({
           </div>
         )}
 
-        <section className="mb-8 space-y-3" aria-labelledby="avoid-heading">
-          <div>
-            <h2 id="avoid-heading" className="text-sm font-semibold text-foreground manrope">
-              Anything to avoid? (optional)
+        <section className="mb-8 space-y-4" aria-labelledby="avoid-heading">
+          <div className="text-center mb-6">
+            <h2 id="avoid-heading" className="text-2xl md:text-3xl font-bold text-foreground manrope mb-3">
+              Anything to Avoid? (Optional)
             </h2>
-            <p className="text-xs text-foreground-accent mt-0.5">
+            <p className="text-foreground-accent text-sm md:text-base max-w-xl mx-auto">
               For dogs with allergies or dietary restrictions.
             </p>
           </div>
 
           {uniqueAllergens.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-foreground-accent mb-1.5">Exclude by allergen</p>
+              <p className="text-sm font-medium text-foreground-accent mb-1.5">Exclude by allergen...</p>
               <div className="flex flex-wrap gap-2">
                 {uniqueAllergens.map((allergen) => {
                   const isExcluded = excludedAllergens.has(allergen.trim());
@@ -171,7 +171,7 @@ export default function RecipeGeneratorClient({
           )}
 
           <div>
-            <p className="text-xs font-medium text-foreground-accent mb-1.5">Or exclude specific ingredients</p>
+            <p className="text-sm font-medium text-foreground-accent mb-1.5">Or exclude specific ingredients</p>
             <IngredientSelector
               ingredients={ingredients}
               selectedIds={excludedIngredientIds}

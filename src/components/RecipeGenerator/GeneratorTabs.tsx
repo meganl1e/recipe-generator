@@ -2,82 +2,53 @@
 
 import { useState } from "react";
 import type { IIngredient } from "@/types";
-import DogDetailsForm from "@/components/DogDetails/DogDetailsForm";
+import DogDetailsForm, { type DogDetailsValue } from "@/components/DogDetails/DogDetailsForm";
 import RecipeGeneratorClient from "@/components/RecipeGenerator/RecipeGeneratorClient";
 
-type TabKey = "dog-details" | "ingredients";
+const INITIAL_DOG_DETAILS: DogDetailsValue = {
+  name: "",
+  weight: 0,
+  unit: "lbs",
+  lifeStage: "",
+};
 
 interface GeneratorTabsProps {
   ingredients: IIngredient[];
 }
 
 export default function GeneratorTabs({ ingredients }: GeneratorTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("dog-details");
-
-  const tabs: { id: TabKey; label: string }[] = [
-    { id: "dog-details", label: "Dog details" },
-    { id: "ingredients", label: "Ingredients" },
-  ];
+  const [dogDetails, setDogDetails] = useState<DogDetailsValue>(INITIAL_DOG_DETAILS);
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Top tab switcher */}
-      <div className="flex justify-center mb-10">
-        <div
-          role="tablist"
-          aria-label="Recipe setup"
-          className="inline-flex rounded-full bg-black/5 p-1"
-        >
-          {tabs.map((tab) => {
-            const isActive = tab.id === activeTab;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={`px-6 py-2.5 text-sm md:text-base font-medium rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                  isActive
-                    ? "bg-primary text-foreground shadow-sm"
-                    : "text-foreground-accent hover:text-foreground"
-                }`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Intro at top */}
+      <header className="text-center mb-12 px-1 md:px-2">
+        <h1 className="text-3xl md:text-5xl font-bold text-foreground manrope mb-3">
+          Recipe Generator
+        </h1>
+        <p className="text-foreground-accent text-base max-w-xl mx-auto">
+          Add your dog&apos;s details, then pick ingredients you have. We&apos;ll suggest balanced recipes tailored to their needs.
+        </p>
+      </header>
 
-      {/* Panels */}
-      <div className="mt-2">
-        {activeTab === "dog-details" ? (
-          <section
-            aria-label="Dog details"
-            className="px-1 md:px-2"
-          >
-            <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground manrope mb-3">
-                Dog details
-              </h1>
-              <p className="text-foreground-accent text-sm md:text-base max-w-xl mx-auto">
-                Enter your dog&apos;s details to estimate their daily calorie
-                needs before creating recipes.
-              </p>
-            </div>
-            <DogDetailsForm />
-          </section>
-        ) : (
-          <section
-            aria-label="Ingredients"
-            className="px-1 md:px-2"
-          >
-            <RecipeGeneratorClient ingredients={ingredients} />
-          </section>
-        )}
-      </div>
+      {/* Dog details block (first) - always full form, calories show inline when valid */}
+      <section aria-label="Dog details" className="px-1 md:px-2 mb-14">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground manrope mb-3">
+            About Your Dog
+          </h2>
+          <p className="text-foreground-accent text-sm md:text-base max-w-xl mx-auto">
+            This is used to calculate portion sizes.
+          </p>
+        </div>
+
+        <DogDetailsForm value={dogDetails} onChange={setDogDetails} />
+      </section>
+
+      {/* Ingredients block (below) */}
+      <section aria-label="Ingredients" className="px-1 md:px-2">
+        <RecipeGeneratorClient ingredients={ingredients} />
+      </section>
     </div>
   );
 }
-
