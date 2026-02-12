@@ -31,6 +31,16 @@ export interface IIngredient {
     yield: number;
 }
 
+/**
+ * Grublify pack from Strapi. Nutrients use the same shape as ingredients
+ * so formulation can blend them the same way (e.g. per 100g).
+ */
+export interface IGrublifyPack {
+  nutrients: Record<string, INutrientValue>;
+  /** If true, nutrient amounts are per 100g (same as ingredients). Default true. */
+  per100g: boolean;
+}
+
 export interface IBenefit {
     title: string;
     description: string;

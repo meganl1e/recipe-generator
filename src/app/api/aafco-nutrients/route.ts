@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       hasData: data.length > 0,
-      data: data, // TAKE THIS OUT LATER
+      // data: data, // TAKE THIS OUT LATER
     });
   } catch (e) {
     console.error("AAFCO fetch failed:", e);

@@ -3,7 +3,7 @@
  * Do not import in client components (token must stay on server).
  */
 
-import type { IAafcoNutrient, IIngredient } from "@/types";
+import type { IAafcoNutrient, IGrublifyPack, IIngredient, INutrientValue } from "@/types";
 
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL;
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
@@ -80,12 +80,61 @@ export async function getAafcoNutrient(): Promise<IAafcoNutrient[]> {
 }
 
 
-export async function getGrublifyNutrients() {
-  const json = await fetchStrapi<{ id: number; attributes: Record<string, unknown> }>(
-    "grublify-nutrition-pack",
-    { populate: "*" } as Record<string, string>
-  );
-  return json.data ?? null;
+/**
+ * Raw Strapi response for grublify-nutrition-pack. Adjust if your Strapi schema differs.
+ * Nutrients may be stored as an array (e.g. [{ name, unit, amount }]) or as an object.
+ */
+type StrapiGrublifyPackRaw = {
+  id?: number;
+  documentId?: string;
+  attributes?: {
+    nutrients?: Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }>;
+    per100g?: boolean;
+  };
+  nutrients?: Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }>;
+};
+
+function normalizeNutrients(
+  raw: Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }> | undefined
+): Record<string, INutrientValue> {
+  if (!raw) return {};
+  if (Array.isArray(raw)) {
+    return raw.reduce<Record<string, INutrientValue>>((acc, n) => {
+      const name = (n as { name?: string }).name ?? String(n);
+      acc[name] = {
+        unit: (n as { unit?: string }).unit ?? "g",
+        amount: Number((n as { amount?: number }).amount) || 0,
+      };
+      return acc;
+    }, {});
+  }
+  const out: Record<string, INutrientValue> = {};
+  for (const [key, val] of Object.entries(raw)) {
+    if (val && typeof val === "object" && "amount" in val)
+      out[key] = { unit: String(val.unit ?? "g"), amount: Number(val.amount) || 0 };
+  }
+  return out;
+}
+
+/**
+ * Fetch Grublify pack from Strapi Cloud (server-only).
+ * Returns nutrients in the same format as ingredient nutrients for formulation.
+ * Only call from API routes or Server Actions; never expose to the client.
+ */
+export async function getGrublifyPack(): Promise<IGrublifyPack | null> {
+  const json = await fetchStrapi<StrapiGrublifyPackRaw>("grublify-nutrition-pack", {
+    populate: "*",
+  } as Record<string, string>);
+
+  const data = json.data;
+  if (!data) return null;
+
+  const attrs = data.attributes ?? {};
+  const rawNutrients = attrs.nutrients ?? (data as StrapiGrublifyPackRaw).nutrients;
+  const nutrients = normalizeNutrients(rawNutrients);
+  const per100g = attrs.per100g !== false;
+
+  return { nutrients, per100g };
 }
 
 export async function getIngredients() {
