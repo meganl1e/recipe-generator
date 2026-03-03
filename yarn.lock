@@ -2273,6 +2273,11 @@ iterator.prototype@^1.1.5:
     has-symbols "^1.1.0"
     set-function-name "^2.0.2"
 
+javascript-lp-solver@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/javascript-lp-solver/-/javascript-lp-solver-1.0.3.tgz#e97c0bcf1a2aa6066db59122f247b08c8ef05657"
+  integrity sha512-+qUYrubmn227YTz25uf9wOTlgB3wFKGtutECxL1shjOkgi/Tcn3SpnC7+T9rxhv/JNOxLIfZ3O6wEx0FwLlXbw==
+
 jiti@^2.6.1:
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/jiti/-/jiti-2.6.1.tgz#178ef2fc9a1a594248c20627cd820187a4d78d92"

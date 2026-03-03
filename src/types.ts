@@ -2,6 +2,8 @@
 export interface IAafcoNutrient {
   id: number;
   name: string;
+  /** String used to match ingredient/Grublify nutrient keys; falls back to name if null. */
+  value: string | null;
   min: number | null;
   max: number | null;
   unit: string;
@@ -24,6 +26,7 @@ export interface IIngredient {
     name: string;
     description: string;
     usdaFdcId: number;
+    calories?: number;
     nutrients: Record<string, INutrientValue>;
     allergens: string[];
     per100g: boolean;

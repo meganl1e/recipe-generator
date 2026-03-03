@@ -116,6 +116,41 @@ function normalizeNutrients(
   return out;
 }
 
+/** AAFCO-derived nutrients: each slot is alternatives (use first match); derived = sum of slots. */
+const DERIVED_NUTRIENTS: Array<{ derivedKey: string; slots: string[][] }> = [
+  { derivedKey: "methionineCystine", slots: [["methionine"], ["cystine"]] },
+  { derivedKey: "phenylalanineTyrosine", slots: [["phenylalanine"], ["tyrosine"]] },
+];
+
+function amountFrom(nutrients: Record<string, INutrientValue>, key: string): number {
+  const val = nutrients[key];
+  return val != null ? Number(val.amount) || 0 : 0;
+}
+
+function findKey(nutrients: Record<string, INutrientValue>, alternatives: string[]): string | null {
+  for (const alt of alternatives) {
+    const key = Object.keys(nutrients).find((k) => k.toLowerCase() === alt.toLowerCase());
+    if (key) return key;
+  }
+  return null;
+}
+
+/** Add AAFCO-derived nutrients (e.g. Methionine + Cystine) to a nutrients map. Mutates and returns the same object. */
+function addDerivedNutrients(nutrients: Record<string, INutrientValue>): Record<string, INutrientValue> {
+  for (const { derivedKey, slots } of DERIVED_NUTRIENTS) {
+    if (nutrients[derivedKey] != null) continue;
+    let sum = 0;
+    for (const slot of slots) {
+      const key = findKey(nutrients, slot);
+      if (key) sum += amountFrom(nutrients, key);
+    }
+    if (sum > 0 || slots.some((slot) => findKey(nutrients, slot))) {
+      nutrients[derivedKey] = { unit: "g", amount: sum };
+    }
+  }
+  return nutrients;
+}
+
 /**
  * Fetch Grublify pack from Strapi Cloud (server-only).
  * Returns nutrients in the same format as ingredient nutrients for formulation.
@@ -131,16 +166,47 @@ export async function getGrublifyPack(): Promise<IGrublifyPack | null> {
 
   const attrs = data.attributes ?? {};
   const rawNutrients = attrs.nutrients ?? (data as StrapiGrublifyPackRaw).nutrients;
-  const nutrients = normalizeNutrients(rawNutrients);
+  let nutrients = normalizeNutrients(rawNutrients);
+  nutrients = addDerivedNutrients(nutrients);
   const per100g = attrs.per100g !== false;
 
   return { nutrients, per100g };
 }
 
-export async function getIngredients() {
-  const json = await fetchStrapi<IIngredient[]>(
+/** Strapi v4 wraps fields in attributes; flatten to match IIngredient. Handles both nested and flat responses. */
+function flattenIngredient(raw: Record<string, unknown>): IIngredient {
+  const attrs = (raw.attributes as Record<string, unknown>) ?? raw;
+  const get = (key: string) => attrs[key] ?? raw[key];
+  const num = (key: string, def: number) => (get(key) != null ? Number(get(key)) : def);
+  const str = (key: string, def: string) => String(get(key) ?? def);
+  const nutrientsRaw = get("nutrients");
+  let nutrients = normalizeNutrients(
+    nutrientsRaw as Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }>
+  ) as Record<string, INutrientValue>;
+  nutrients = addDerivedNutrients(nutrients);
+  const allergensRaw = get("allergens");
+  const allergens = (Array.isArray(allergensRaw) ? allergensRaw : []).map(String);
+
+  return {
+    id: num("id", 0),
+    documentId: str("documentId", ""),
+    name: str("name", ""),
+    description: str("description", ""),
+    usdaFdcId: num("usdaFdcId", 0),
+    calories: get("calories") != null ? Number(get("calories")) : undefined,
+    nutrients,
+    allergens,
+    per100g: get("per100g") !== false,
+    category: str("category", ""),
+    yield: num("yield", 1),
+  };
+}
+
+export async function getIngredients(): Promise<IIngredient[]> {
+  const json = await fetchStrapi<Array<Record<string, unknown>>>(
     "ingredients",
     { "pagination[pageSize]": "100" }
   );
-  return json.data ?? [];
+  const data = json.data ?? [];
+  return data.map((item) => flattenIngredient(item));
 }

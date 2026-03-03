@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { IIngredient } from "@/types";
-import DogDetailsForm, { type DogDetailsValue } from "@/components/DogDetails/DogDetailsForm";
+import DogDetailsForm, { type DogDetailsValue, LIFE_STAGE_FACTORS } from "@/components/DogDetails/DogDetailsForm";
 import RecipeGeneratorClient from "@/components/RecipeGenerator/RecipeGeneratorClient";
+import { lbsToKg, mer } from "@/lib/dog-calories";
 
 const INITIAL_DOG_DETAILS: DogDetailsValue = {
   name: "",
@@ -18,6 +19,14 @@ interface GeneratorTabsProps {
 
 export default function GeneratorTabs({ ingredients }: GeneratorTabsProps) {
   const [dogDetails, setDogDetails] = useState<DogDetailsValue>(INITIAL_DOG_DETAILS);
+
+  const dailyCalories = useMemo(() => {
+    const { weight, unit, lifeStage } = dogDetails;
+    if (!weight || weight <= 0) return null;
+    const weightKg = unit === "lbs" ? lbsToKg(weight) : weight;
+    const factor = LIFE_STAGE_FACTORS[lifeStage] || 1.6;
+    return mer(weightKg, factor);
+  }, [dogDetails]);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -47,7 +56,7 @@ export default function GeneratorTabs({ ingredients }: GeneratorTabsProps) {
 
       {/* Ingredients block (below) */}
       <section aria-label="Ingredients" className="px-1 md:px-2">
-        <RecipeGeneratorClient ingredients={ingredients} />
+        <RecipeGeneratorClient ingredients={ingredients} dailyCalories={dailyCalories} />
       </section>
     </div>
   );

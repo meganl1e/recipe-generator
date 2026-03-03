@@ -12,25 +12,65 @@
  */
 
 import { NextResponse } from "next/server";
-// TODO: Import these functions once they exist
-// import { getAafcoNutrient, getIngredients, getGrublifyPack } from "@/lib/strapi";
-// import { formulateRecipe } from "@/lib/recipe-formulation";
+import { getAafcoNutrient, getIngredients, getGrublifyPack } from "@/lib/strapi";
+import { formulateRecipe } from "@/lib/recipe-formulation";
 import type { IIngredient } from "@/types";
+
+function getCategory(ing: IIngredient): string {
+  return ing.category?.trim() || "Other";
+}
+
+/**
+ * Build the ingredient set for the recipe:
+ * - User-selected ingredients (if any) from the pool.
+ * - At least one ingredient from every category in the pool (so e.g. one meat + one produce + one grain).
+ * No cap and no extra fill — just selections + one per category.
+ */
+function buildIngredientSet(
+  pool: IIngredient[],
+  selectedIngredientIds: string[]
+): IIngredient[] {
+  const byCategory = new Map<string, IIngredient[]>();
+  for (const ing of pool) {
+    const cat = getCategory(ing);
+    if (!byCategory.has(cat)) byCategory.set(cat, []);
+    byCategory.get(cat)!.push(ing);
+  }
+
+  const result: IIngredient[] = [];
+  const resultIds = new Set<string>();
+
+  // 1) Add user-selected ingredients that are in the pool
+  for (const id of selectedIngredientIds) {
+    const ing = pool.find((i) => i.documentId === id);
+    if (ing && !resultIds.has(id)) {
+      result.push(ing);
+      resultIds.add(id);
+    }
+  }
+
+  // 2) Ensure at least one from each category (fill missing categories; pick randomly)
+  for (const [cat, list] of byCategory) {
+    if (result.some((ing) => getCategory(ing) === cat)) continue;
+    const available = list.filter((i) => !resultIds.has(i.documentId));
+    if (available.length === 0) continue;
+    const ing = available[Math.floor(Math.random() * available.length)];
+    result.push(ing);
+    resultIds.add(ing.documentId);
+  }
+
+  return result;
+}
 
 /**
  * TypeScript type for the request body that the client will send
  * This defines what data we expect to receive from the browser
  */
 interface GenerateRecipeRequest {
-  /** Daily calories the dog needs (from dog details form) */
   dailyKcal: number;
-  /** Array of ingredient documentIds that the user selected */
   selectedIngredientIds: string[];
-  /** Array of allergen names to exclude (e.g. ["chicken", "beef"]) */
   excludedAllergens: string[];
-  /** Array of ingredient documentIds to exclude */
   excludedIngredientIds: string[];
-  /** Optional: number of meals per day (defaults to 2 if not provided) */
   mealsPerDay?: number;
 }
 
@@ -49,18 +89,15 @@ interface GenerateRecipeResponse {
     }>;
     /** Optional: amount of Grublify pack to add (in grams) */
     grublifyGrams?: number;
-    /** Total weight of the batch in grams */
     totalGrams: number;
-    /** Total calories in the batch */
     totalKcal: number;
   };
-  /** Per-meal feeding instructions */
   feeding: {
-    /** How many grams to feed per meal */
     perMealGrams: number;
-    /** How many meals per day */
     mealsPerDay: number;
   };
+  /** True when LP solver failed and we fell back to heuristic (equal proportions + Grublify for shortfalls) */
+  usedFallback?: boolean;
 }
 
 /**
@@ -101,88 +138,61 @@ export async function POST(request: Request) {
     // These functions use your STRAPI_API_TOKEN which is only available on the server
     // The browser NEVER sees these calls or the data they return
     
-    // TODO: Uncomment these once the functions exist
-    // const aafcoGuidelines = await getAafcoNutrient();
-    // const allIngredients = await getIngredients();
-    // const grublifyPack = await getGrublifyPack();
-    
-    // For now, we'll use placeholder data so you can see the structure
-    const aafcoGuidelines: any[] = []; // TODO: Replace with actual fetch
-    const allIngredients: IIngredient[] = []; // TODO: Replace with actual fetch
-    const grublifyPack: any = null; // TODO: Replace with actual fetch
+    const aafcoGuidelines = await getAafcoNutrient();
+    const allIngredients = await getIngredients();
+    const grublifyPack = await getGrublifyPack();
 
     // ============================================
-    // STEP 3: Filter ingredients based on user selections
+    // STEP 3: Filter ingredients and decide which to use
     // ============================================
-    // We need to:
-    // - Use selected ingredients if provided, otherwise use all ingredients
-    // - Remove ingredients that contain excluded allergens
-    // - Remove ingredients that are in the excluded list
+    // Build a pool: all ingredients minus excluded allergens and excluded ingredient IDs.
+    // If the user selected some IDs, use those from the pool. If none selected, we pick a default set (by category).
 
-    let availableIngredients: IIngredient[];
+    let pool = [...allIngredients];
 
-    if (selectedIngredientIds.length > 0) {
-      // User selected specific ingredients - only use those
-      availableIngredients = allIngredients.filter((ing) =>
-        selectedIngredientIds.includes(ing.documentId)
-      );
-    } else {
-      // User didn't select any - use all ingredients
-      availableIngredients = [...allIngredients];
-    }
-
-    // Filter out ingredients that contain excluded allergens
     if (excludedAllergens.length > 0) {
-      availableIngredients = availableIngredients.filter((ing) => {
-        // Check if this ingredient has any of the excluded allergens
+      pool = pool.filter((ing) => {
         const hasExcludedAllergen = ing.allergens?.some((allergen) =>
           excludedAllergens.includes(allergen.trim())
         );
-        return !hasExcludedAllergen; // Keep ingredients that DON'T have excluded allergens
+        return !hasExcludedAllergen;
       });
     }
 
-    // Filter out ingredients that are explicitly excluded
     if (excludedIngredientIds.length > 0) {
-      availableIngredients = availableIngredients.filter(
-        (ing) => !excludedIngredientIds.includes(ing.documentId)
-      );
+      pool = pool.filter((ing) => !excludedIngredientIds.includes(ing.documentId));
     }
 
-    // Check if we have any ingredients left after filtering
-    if (availableIngredients.length === 0) {
+    if (pool.length === 0) {
       return NextResponse.json(
         { error: "No ingredients available after applying filters" },
         { status: 400 }
       );
     }
 
+    // At least one ingredient from each category; include user selections; fill to maxCount
+    const availableIngredients = buildIngredientSet(pool, selectedIngredientIds);
+
     // ============================================
     // STEP 4: Run formulation logic
     // ============================================
-    // This is where the magic happens - calculating ingredient amounts
-    // to meet AAFCO standards. This will be in a separate file (recipe-formulation.ts)
-    
-    // TODO: Uncomment once formulateRecipe exists
-    // const recipe = await formulateRecipe({
-    //   aafcoGuidelines,
-    //   ingredients: availableIngredients,
-    //   grublifyPack,
-    //   dailyKcal,
-    //   mealsPerDay,
-    // });
+    const result = formulateRecipe(aafcoGuidelines, availableIngredients, grublifyPack, {
+      dailyKcal,
+      mealsPerDay,
+    });
 
-    // For now, return a placeholder response so you can see the structure
     const recipe: GenerateRecipeResponse = {
       batch: {
-        ingredients: [],
-        totalGrams: 0,
-        totalKcal: 0,
+        ingredients: result.ingredients,
+        ...(result.grublifyGrams != null && { grublifyGrams: result.grublifyGrams }),
+        totalGrams: result.totalGrams,
+        totalKcal: result.totalKcal,
       },
       feeding: {
-        perMealGrams: 0,
+        perMealGrams: result.perMealGrams,
         mealsPerDay,
       },
+      ...(result.usedFallback && { usedFallback: true }),
     };
 
     // ============================================

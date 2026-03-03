@@ -1,22 +1,31 @@
 "use client";
 
 import React, { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { HiXMark } from "react-icons/hi2";
 import Container from "@/components/Container";
 import IngredientSelector, { CATEGORY_ICONS } from "./IngredientSelector";
 import type { IIngredient } from "@/types";
 import { TbSalad } from "react-icons/tb";
 
+const RECIPE_RESULT_KEY = "recipe-result";
+
 interface RecipeGeneratorClientProps {
   /** Pass ingredients from server (e.g. from Strapi). Empty array = skeleton/empty state. */
   ingredients: IIngredient[];
+  /** Daily kcal from dog details. Required to generate. */
+  dailyCalories: number | null;
   loading?: boolean;
 }
 
 export default function RecipeGeneratorClient({
   ingredients,
+  dailyCalories,
   loading = false,
 }: RecipeGeneratorClientProps) {
+  const router = useRouter();
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [excludedAllergens, setExcludedAllergens] = useState<Set<string>>(new Set());
   const [excludedIngredientIds, setExcludedIngredientIds] = useState<Set<string>>(new Set());
@@ -72,14 +81,38 @@ export default function RecipeGeneratorClient({
     [ingredients, excludedIngredientIds]
   );
 
-  const handleGenerate = () => {
-    console.log("Generate recipes (skeleton)", {
-      selectedDocumentIds: Array.from(selectedIds),
-      selected,
-      excludedAllergens: Array.from(excludedAllergens),
-      excludedIngredientIds: Array.from(excludedIngredientIds),
-      excludedIngredients,
-    });
+  const handleGenerate = async () => {
+    if (!dailyCalories || dailyCalories <= 0) {
+      setError("Please enter your dog's weight and life stage to calculate daily calories.");
+      return;
+    }
+    setError(null);
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/generate-recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dailyKcal: dailyCalories,
+          selectedIngredientIds: Array.from(selectedIds),
+          excludedAllergens: Array.from(excludedAllergens),
+          excludedIngredientIds: Array.from(excludedIngredientIds),
+          mealsPerDay: 2,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to generate recipe.");
+        return;
+      }
+      sessionStorage.setItem(RECIPE_RESULT_KEY, JSON.stringify(data, null, 2));
+      router.push("/generator/result");
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+      console.error(err);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -182,13 +215,19 @@ export default function RecipeGeneratorClient({
           </div>
         </section>
 
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3">
+          {error && (
+            <p className="text-rose-600 text-sm font-medium" role="alert">
+              {error}
+            </p>
+          )}
           <button
             type="button"
             onClick={handleGenerate}
-            className="rounded-full bg-primary hover:bg-primary-accent text-foreground font-semibold px-10 py-4 text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            disabled={generating || !dailyCalories}
+            className="rounded-full bg-primary hover:bg-primary-accent text-foreground font-semibold px-10 py-4 text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Generate recipes
+            {generating ? "Generating…" : "Generate recipes"}
           </button>
         </div>
       </div>
