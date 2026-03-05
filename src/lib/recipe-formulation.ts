@@ -32,6 +32,22 @@ export interface FormulateRecipeResult {
   perMealGrams: number;
   /** True when LP was infeasible and we fell back to the heuristic (equal proportions + Grublify for shortfalls). */
   usedFallback?: boolean;
+  /**
+   * Debug view of how AAFCO guideline strings map onto ingredient / Grublify nutrient keys.
+   * Used to help diagnose mismatches on the result page.
+   */
+  debugNutrientMapping?: {
+    aafcoCompareStrings: string[];
+    ingredientNutrientKeys: string[];
+    grublifyNutrientKeys: string[];
+    matches: Array<{ aafcoCompare: string; matchedKey: string | null }>;
+    noMatch: string[];
+  };
+  /**
+   * When true, we detected at least one AAFCO guideline that did not match any
+   * ingredient/Grublify nutrient key and therefore skipped recipe formulation.
+   */
+  skippedDueToNutrientMismatch?: boolean;
 }
 
 /** Calories per gram for an ingredient. */
@@ -170,13 +186,35 @@ export function formulateRecipe(
     const compareStr = a.value ?? a.name;
     return { aafcoCompare: compareStr, matchedKey: matchNutrientKey(compareStr, [...allNutrientKeysForLog]) };
   });
-  console.log("[recipe-formulation] Nutrient name check:", JSON.stringify({
+  const debugNutrientMapping = {
     aafcoCompareStrings: aafcoGuidelines.map((a) => a.value ?? a.name),
     ingredientNutrientKeys: [...ingredientKeysForLog].sort(),
     grublifyNutrientKeys: grublifyKeysForLog.sort(),
-    matches: matchesForLog.map((m) => (m.matchedKey ? `${m.aafcoCompare} → ${m.matchedKey}` : `${m.aafcoCompare} → NO MATCH`)),
+    matches: matchesForLog,
     noMatch: matchesForLog.filter((m) => !m.matchedKey).map((m) => m.aafcoCompare),
+  };
+  console.log("[recipe-formulation] Nutrient name check:", JSON.stringify({
+    aafcoCompareStrings: debugNutrientMapping.aafcoCompareStrings,
+    ingredientNutrientKeys: debugNutrientMapping.ingredientNutrientKeys,
+    grublifyNutrientKeys: debugNutrientMapping.grublifyNutrientKeys,
+    matches: debugNutrientMapping.matches.map((m) =>
+      m.matchedKey ? `${m.aafcoCompare} → ${m.matchedKey}` : `${m.aafcoCompare} → NO MATCH`
+    ),
+    noMatch: debugNutrientMapping.noMatch,
   }, null, 2));
+
+  // If any AAFCO guideline failed to match an ingredient/Grublify nutrient key,
+  // skip formulation and return the mapping so the UI can display it.
+  if (debugNutrientMapping.noMatch.length > 0) {
+    return {
+      ingredients: [],
+      totalGrams: 0,
+      totalKcal: 0,
+      perMealGrams: 0,
+      debugNutrientMapping,
+      skippedDueToNutrientMismatch: true,
+    };
+  }
 
   const n = ingredients.length;
   const sumCalPerGram = ingredients.reduce((acc, ing) => acc + calPerGram(ing), 0);

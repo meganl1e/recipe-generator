@@ -69,14 +69,48 @@ export async function fetchStrapi<T = unknown>(
 // }
 
 /**
+ * Flatten one AAFCO nutrient entry from Strapi v4 shape (id + attributes) to IAafcoNutrient.
+ * Strapi v4 returns component entries as { id, attributes: { name, value, min, max, unit, notes } }.
+ */
+function flattenAafcoNutrientEntry(raw: Record<string, unknown>): IAafcoNutrient {
+  const attrs = (raw.attributes as Record<string, unknown>) ?? raw;
+  const get = (key: string) => attrs[key] ?? raw[key];
+  const num = (key: string, def: number | null) => {
+    const v = get(key);
+    return v != null && v !== "" ? Number(v) : def;
+  };
+  const str = (key: string, def: string | null): string | null => {
+    const v = get(key);
+    if (v == null || v === "") return def;
+    return String(v);
+  };
+  return {
+    id: num("id", 0) ?? 0,
+    name: String(get("name") ?? ""),
+    value: str("value", null),
+    min: num("min", null),
+    max: num("max", null),
+    unit: String(get("unit") ?? "g"),
+    notes: str("notes", null),
+  };
+}
+
+/**
  * Fetch AAFCO nutrient guidelines (single type). Returns the nutrient entries array for formulation.
  * Single-type endpoint: /api/aafco-nutrient. Populate so the nutrient component is included.
+ * Normalizes Strapi v4 response (attributes wrapper) so name/value/min/max are top-level.
  */
 export async function getAafcoNutrient(): Promise<IAafcoNutrient[]> {
-  const json = await fetchStrapi<{ nutrient: IAafcoNutrient[] }>("aafco-nutrient", {
+  const json = await fetchStrapi<Record<string, unknown>>("aafco-nutrient", {
     populate: "nutrient",
   } as Record<string, string>);
-  return json.data?.nutrient ?? [];
+  const data = json.data as Record<string, unknown> | undefined;
+  const fromAttrs = (data?.attributes as Record<string, unknown> | undefined)?.nutrient;
+  const fromTop = data?.nutrient;
+  const rawList = Array.isArray(fromAttrs) ? fromAttrs : Array.isArray(fromTop) ? fromTop : [];
+  return (rawList as Array<Record<string, unknown>>).map((item) =>
+    flattenAafcoNutrientEntry(item)
+  );
 }
 
 
@@ -94,8 +128,14 @@ type StrapiGrublifyPackRaw = {
   nutrients?: Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }>;
 };
 
+/**
+ * Normalize Strapi nutrients into a flat map for formulation.
+ * - Object form (your Strapi): { crudeProtein: { amount, unit }, calcium: { amount, unit }, ... }
+ *   → Keys are used as nutrient names (e.g. "crudeProtein", "calcium"). AAFCO "value" must match these (case-insensitive).
+ * - Array form: [{ name, unit, amount }, ...] → "name" becomes the key.
+ */
 function normalizeNutrients(
-  raw: Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }> | undefined
+  raw: Record<string, { unit?: string; amount?: number | null; note?: string; missing?: boolean }> | Array<{ name: string; unit: string; amount: number }> | undefined
 ): Record<string, INutrientValue> {
   if (!raw) return {};
   if (Array.isArray(raw)) {

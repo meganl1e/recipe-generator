@@ -98,6 +98,20 @@ interface GenerateRecipeResponse {
   };
   /** True when LP solver failed and we fell back to heuristic (equal proportions + Grublify for shortfalls) */
   usedFallback?: boolean;
+  /**
+   * When present, shows how AAFCO guideline strings mapped to ingredient / Grublify nutrient keys.
+   * If skippedDueToNutrientMismatch is true, the batch recipe will be empty and this is what the
+   * UI should display instead so the user can align names.
+   */
+  debugNutrientMapping?: {
+    aafcoCompareStrings: string[];
+    ingredientNutrientKeys: string[];
+    grublifyNutrientKeys: string[];
+    matches: Array<{ aafcoCompare: string; matchedKey: string | null }>;
+    noMatch: string[];
+  };
+  /** True when formulation was skipped because at least one AAFCO guideline did not match any key. */
+  skippedDueToNutrientMismatch?: boolean;
 }
 
 /**
@@ -193,6 +207,12 @@ export async function POST(request: Request) {
         mealsPerDay,
       },
       ...(result.usedFallback && { usedFallback: true }),
+      ...(result.debugNutrientMapping && {
+        debugNutrientMapping: result.debugNutrientMapping,
+      }),
+      ...(result.skippedDueToNutrientMismatch && {
+        skippedDueToNutrientMismatch: true,
+      }),
     };
 
     // ============================================
