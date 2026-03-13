@@ -20,11 +20,14 @@ function getCategory(ing: IIngredient): string {
   return ing.category?.trim() || "Other";
 }
 
+/** Max ingredients to pass to the solver so it has enough variety to meet AAFCO. */
+const MAX_INGREDIENTS_FOR_SOLVER = 30;
+
 /**
  * Build the ingredient set for the recipe:
  * - User-selected ingredients (if any) from the pool.
- * - At least one ingredient from every category in the pool (so e.g. one meat + one produce + one grain).
- * No cap and no extra fill — just selections + one per category.
+ * - At least one ingredient from every category in the pool.
+ * - Then fill up to MAX_INGREDIENTS_FOR_SOLVER with more from the pool (random) so the solver has options.
  */
 function buildIngredientSet(
   pool: IIngredient[],
@@ -59,6 +62,17 @@ function buildIngredientSet(
     resultIds.add(ing.documentId);
   }
 
+  // 3) Add more from pool up to MAX_INGREDIENTS_FOR_SOLVER so the solver has variety to meet AAFCO
+  const remaining = pool.filter((i) => !resultIds.has(i.documentId));
+  const need = Math.max(0, MAX_INGREDIENTS_FOR_SOLVER - result.length);
+  if (need > 0 && remaining.length > 0) {
+    const shuffled = [...remaining].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(need, shuffled.length); i++) {
+      result.push(shuffled[i]);
+      resultIds.add(shuffled[i].documentId);
+    }
+  }
+
   return result;
 }
 
@@ -79,6 +93,8 @@ interface GenerateRecipeRequest {
  * This defines what data the browser will receive
  */
 interface GenerateRecipeResponse {
+  /** Ingredients that were passed to the solver for this run */
+  ingredientsUsed: Array<{ documentId: string; name: string }>;
   /** The batch recipe (total amounts for all ingredients) */
   batch: {
     /** List of ingredients with their amounts in grams */
@@ -195,10 +211,38 @@ export async function POST(request: Request) {
       mealsPerDay,
     });
 
+    if (result.error) {
+      const ingredientsUsedForError = [
+        ...availableIngredients.map((i) => ({ documentId: i.documentId, name: i.name })),
+        ...(grublifyPack ? [{ documentId: "grublify-pack", name: "Grublify pack" }] : []),
+      ];
+      return NextResponse.json(
+        {
+          error: result.error,
+          lpDiagnostics: result.lpDiagnostics,
+          ingredientsUsed: ingredientsUsedForError,
+        },
+        { status: 422 }
+      );
+    }
+
+    const batchIngredients = [
+      ...result.ingredients,
+      ...(grublifyPack
+        ? [{ documentId: "grublify-pack", name: "Grublify pack", grams: result.grublifyGrams ?? 0 }]
+        : []),
+    ].filter((item) => item.grams > 0.01);
+
+    const ingredientsUsed = batchIngredients.map((item) => ({
+      documentId: item.documentId,
+      name: item.name,
+    }));
+
     const recipe: GenerateRecipeResponse = {
+      ingredientsUsed,
       batch: {
-        ingredients: result.ingredients,
-        ...(result.grublifyGrams != null && { grublifyGrams: result.grublifyGrams }),
+        ingredients: batchIngredients,
+        ...(result.grublifyGrams != null && result.grublifyGrams > 0.01 && { grublifyGrams: result.grublifyGrams }),
         totalGrams: result.totalGrams,
         totalKcal: result.totalKcal,
       },

@@ -2,6 +2,7 @@
 export interface IAafcoNutrient {
   id: number;
   name: string;
+  type: string;
   /** String used to match ingredient/Grublify nutrient keys; falls back to name if null. */
   value: string | null;
   min: number | null;
@@ -35,12 +36,18 @@ export interface IIngredient {
 }
 
 /**
- * Grublify pack from Strapi. Nutrients use the same shape as ingredients
- * so formulation can blend them the same way (e.g. per 100g).
+ * Grublify pack from Strapi. Nutrients use the same shape as ingredients.
  */
 export interface IGrublifyPack {
   nutrients: Record<string, INutrientValue>;
-  /** If true, nutrient amounts are per 100g (same as ingredients). Default true. */
+  /**
+   * Reference grams for the nutrient values (like per100g but for any number).
+   * If set, each nutrient amount is "per this many grams" (e.g. amount = 10 → values are per 10 g).
+   * Per gram = nutrient.amount / amount.
+   * If not set, per100g is used: true = per 100 g, false = per 1 g.
+   */
+  amount?: number;
+  /** If amount is not set: true = nutrient amounts are per 100 g; false = per 1 g. Ignored when amount is set. */
   per100g: boolean;
 }
 

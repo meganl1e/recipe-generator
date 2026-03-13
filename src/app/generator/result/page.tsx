@@ -55,13 +55,23 @@ export default function GeneratorResultPage() {
       }
     | undefined;
   const skipped = Boolean(data?.skippedDueToNutrientMismatch);
+  const error = data?.error as string | undefined;
+  const lpDiagnostics = data?.lpDiagnostics as { note?: string; violations: string[]; blockingConstraints?: string[] } | undefined;
+  const violations = lpDiagnostics?.violations ?? [];
+  const blockingConstraints = lpDiagnostics?.blockingConstraints ?? [];
+  const diagNote = lpDiagnostics?.note;
+  const ingredientsUsed = data?.ingredientsUsed as Array<{ documentId: string; name: string }> | undefined;
 
   return (
     <div className="min-h-screen bg-background py-12 px-5">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground">
-            {skipped ? "Nutrient Name Mapping" : "Recipe Result"}
+            {error
+              ? "Recipe Error"
+              : skipped
+                ? "Nutrient Name Mapping"
+                : "Recipe Result"}
           </h1>
           <Link
             href="/generator"
@@ -70,6 +80,51 @@ export default function GeneratorResultPage() {
             ← Back to Generator
           </Link>
         </div>
+
+        {ingredientsUsed && ingredientsUsed.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-foreground-accent mb-2">Ingredients used for this run</h2>
+            <p className="text-sm text-foreground font-mono">
+              {ingredientsUsed.map((i) => i.name).join(" · ")}
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-8 rounded-lg border border-rose-500/30 bg-rose-500/5 p-4">
+            <p className="text-sm font-medium text-rose-700 dark:text-rose-400">{error}</p>
+            <p className="mt-2 text-xs text-foreground-accent">
+              Minimums mean “at least” (the recipe can be above). The solver could not find any blend that meets every constraint. Check that the Grublify pack has all required nutrients and the correct reference amount (e.g. per 10 g).
+            </p>
+          </div>
+        )}
+
+        {error && (blockingConstraints.length > 0 || violations.length > 0) && (
+          <div className="mb-8 space-y-4">
+            {blockingConstraints.length > 0 && (
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+                <h2 className="text-lg font-semibold text-amber-800 dark:text-amber-200">Blocking constraints</h2>
+                <p className="mt-1 text-sm text-foreground-accent">
+                  Removing one of these constraints makes a solution possible. Fix the data for these (e.g. add to Grublify or ingredients) to get a feasible recipe.
+                </p>
+                <ul className="mt-2 list-inside list-disc space-y-0.5 text-sm font-mono text-foreground">
+                  {blockingConstraints.map((name, i) => (
+                    <li key={i}>{name}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-foreground">Violated constraints (test blend)</h2>
+              {diagNote && <p className="text-sm text-foreground-accent">{diagNote}</p>}
+              <ul className="list-inside list-disc space-y-1 rounded-lg border border-foreground/10 bg-foreground/5 p-4 text-sm font-mono text-foreground">
+                {violations.map((v, i) => (
+                  <li key={i}>{v}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
 
         {skipped && debug && (
           <div className="mb-8 space-y-4">

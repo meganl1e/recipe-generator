@@ -88,6 +88,7 @@ function flattenAafcoNutrientEntry(raw: Record<string, unknown>): IAafcoNutrient
     id: num("id", 0) ?? 0,
     name: String(get("name") ?? ""),
     value: str("value", null),
+    type: str("type", "") ?? "",
     min: num("min", null),
     max: num("max", null),
     unit: String(get("unit") ?? "g"),
@@ -123,6 +124,8 @@ type StrapiGrublifyPackRaw = {
   documentId?: string;
   attributes?: {
     nutrients?: Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }>;
+    /** Reference grams for nutrient values (like per100g but e.g. 10 = per 10 g). */
+    amount?: number;
     per100g?: boolean;
   };
   nutrients?: Record<string, { unit?: string; amount?: number }> | Array<{ name: string; unit: string; amount: number }>;
@@ -208,9 +211,10 @@ export async function getGrublifyPack(): Promise<IGrublifyPack | null> {
   const rawNutrients = attrs.nutrients ?? (data as StrapiGrublifyPackRaw).nutrients;
   let nutrients = normalizeNutrients(rawNutrients);
   nutrients = addDerivedNutrients(nutrients);
+  const amount = attrs.amount != null ? Number(attrs.amount) : undefined;
   const per100g = attrs.per100g !== false;
 
-  return { nutrients, per100g };
+  return { nutrients, amount, per100g };
 }
 
 /** Strapi v4 wraps fields in attributes; flatten to match IIngredient. Handles both nested and flat responses. */

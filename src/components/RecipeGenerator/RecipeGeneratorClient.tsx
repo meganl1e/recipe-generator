@@ -101,12 +101,12 @@ export default function RecipeGeneratorClient({
         }),
       });
       const data = await res.json();
+      sessionStorage.setItem(RECIPE_RESULT_KEY, JSON.stringify(data, null, 2));
+      router.push("/generator/result");
       if (!res.ok) {
         setError(data.error ?? "Failed to generate recipe.");
         return;
       }
-      sessionStorage.setItem(RECIPE_RESULT_KEY, JSON.stringify(data, null, 2));
-      router.push("/generator/result");
     } catch (err) {
       setError("Something went wrong. Please try again.");
       console.error(err);
